@@ -9,7 +9,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-mongoose.connect('mongodb://localhost:27017/sistema-clinica', {
+mongoose.connect('mongodb://localhost:27017/schatAppReactNative', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 });
