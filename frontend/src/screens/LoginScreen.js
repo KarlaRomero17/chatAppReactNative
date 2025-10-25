@@ -38,26 +38,57 @@ const LoginScreen = () => {
             return;
         }
             setLoading(true);
-        try {
-            const res = await axios.post(`${BASE_URL}/api/auth/login`, {
-                nombreUsuario: username,
-                contraseña: password,
-            });
-            console.log(res.data);
-            //creat token
-            const { token } = res.data;
-            if(token){
-                await AsyncStorage.setItem('token', token);
-                await AsyncStorage.setItem('user', username);
-                    setLoading(false);
-                setUser({ username });
-                navigation.replace('Main');
-            }else{
-                    setLoading(false);
-                setError('Error al iniciar sesión');
-            }
+            try {
+                // Si el username parece un email, intentar Firebase primero (más rápido que esperar un timeout de backend)
+                if (username && username.includes('@')) {
+                    try {
+                        const fbRes = await signInWithEmailPass(username, password);
+                        if (fbRes.success) {
+                            const token = fbRes.token || (fbRes.user && (await fbRes.user.getIdToken()));
+                            let displayName = await getNombreByEmail(username);
+                            if (!displayName) {
+                                displayName = (fbRes.user && (fbRes.user.displayName || fbRes.user.email.split('@')[0])) || username.split('@')[0];
+                            }
+                            await AsyncStorage.setItem('token', token || 'faketoken12345');
+                            await AsyncStorage.setItem('user', displayName);
+                            setUser({ username: displayName });
+                            setLoading(false);
+                            navigation.replace('Main');
+                            return;
+                        } else {
+                            // Si las credenciales son inválidas, mostrar el error inmediatamente
+                            const msg = fbRes.error?.message || 'Error en autenticación con Firebase';
+                            alert(msg);
+                            setError(msg);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (fbExc) {
+                        // Si Firebase falla por red u otro motivo, continuar y probar backend
+                        console.log('Firebase signIn attempt failed, will try backend:', fbExc);
+                    }
+                }
 
-        } catch (error) {
+                // Intentar backend (timeout corto para fallar rápido si la ruta no responde)
+                const res = await axios.post(`${BASE_URL}/api/auth/login`, {
+                    nombreUsuario: username,
+                    contraseña: password,
+                }, { timeout: 5000 });
+                console.log(res.data);
+                //creat token
+                const { token } = res.data;
+                if(token){
+                    await AsyncStorage.setItem('token', token);
+                    await AsyncStorage.setItem('user', username);
+                    setLoading(false);
+                    setUser({ username });
+                    navigation.replace('Main');
+                }else{
+                    setLoading(false);
+                    setError('Error al iniciar sesión');
+                }
+
+            } catch (error) {
                 console.log('Login error (backend):', error);
             // Si el backend responde con mensaje, mostrarlo
             if (error.response && error.response.data && error.response.data.message) {

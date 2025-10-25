@@ -1,7 +1,7 @@
 // Helpers de autenticación usando Firebase Web SDK
 import './firebaseWeb'; // asegura que Firebase app y Database están inicializados
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { getDatabase, ref, push, set, get, child } from 'firebase/database';
+import { getDatabase, ref, push, set, get, child, query, orderByChild, equalTo } from 'firebase/database';
 
 const auth = getAuth();
 const db = getDatabase();
@@ -44,22 +44,17 @@ export async function signInWithEmailPass(email, password) {
 // Buscar el nombre (campo 'nombre') en el nodo 'usuarios' por correo
 export async function getNombreByEmail(email) {
   try {
+    // Usar una consulta indexada para buscar por correo y evitar descargar todo el nodo
     const usuariosRef = ref(db, 'usuarios');
-    const snapshot = await get(usuariosRef);
+    const q = query(usuariosRef, orderByChild('correo'), equalTo(email));
+    const snapshot = await get(q);
     const data = snapshot.val();
     if (!data) return null;
-    // data puede ser un array o un objeto con keys
-    if (Array.isArray(data)) {
-      const found = data.find(u => u && u.correo === email);
-      return found ? found.nombre : null;
-    } else {
-      const keys = Object.keys(data);
-      for (let k of keys) {
-        const u = data[k];
-        if (u && u.correo === email) return u.nombre;
-      }
-    }
-    return null;
+    // data será un objeto con una o varias keys
+    const keys = Object.keys(data);
+    if (keys.length === 0) return null;
+    const first = data[keys[0]];
+    return first?.nombre || null;
   } catch (error) {
     console.error('getNombreByEmail error', error);
     return null;
