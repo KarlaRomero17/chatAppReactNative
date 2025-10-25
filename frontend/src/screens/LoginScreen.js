@@ -129,7 +129,7 @@ const LoginScreen = () => {
                         setLoading(false);
                 }
 
-                // Fallback de desarrollo: si el usuario se registró en la app (RegisterScreen guarda user y token en AsyncStorage), permitir ingreso localmente
+                // Fallback de desarrollo: si el usuario se registró localmente (AsyncStorage), permitir ingreso localmente
                 try {
                     const storedUser = await AsyncStorage.getItem('user');
                     const storedToken = await AsyncStorage.getItem('token');
@@ -186,15 +186,9 @@ const LoginScreen = () => {
 
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={{ marginTop: 15, color: '#005187', textAlign: 'center', fontSize: 16 }}>
-                    ¿No tienes cuenta? Regístrate
-                </Text>
-            </TouchableOpacity>
-
             <TouchableOpacity onPress={() => navigation.navigate('FirebaseAuth')}>
                 <Text style={{ marginTop: 8, color: '#005187', textAlign: 'center', fontSize: 16 }}>
-                    ¿Usar Firebase Auth (email)?
+                    ¿No tienes cuenta? Regístrate
                 </Text>
             </TouchableOpacity>
             </>
