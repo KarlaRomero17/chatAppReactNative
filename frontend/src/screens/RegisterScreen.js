@@ -32,7 +32,7 @@ const RegisterScreen = () => {
 
     return (
         <View style={styles.container}>
-            <Image source={require('../../../assets/cat-logo.png')} style={styles.logo} />
+            <Image source={require('../../../assets/chat.png')} style={styles.logo} />
             <Text style={styles.title}>Registro</Text>
 
             <TextInput
