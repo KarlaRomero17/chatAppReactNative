@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { useContext, useEffect, useState } from 'react';
-import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { UserContext } from '../context/UserContext';
+import { signInWithEmailPass, getNombreByEmail } from '../firebaseAuth';
 import axios from 'axios';
 
 //Pantalla de login
@@ -36,8 +37,7 @@ const LoginScreen = () => {
             alert('Debe ingresar usuario y contraseña');
             return;
         }
-
-        setLoading(true);
+            setLoading(true);
         try {
             const res = await axios.post(`${BASE_URL}/api/auth/login`, {
                 nombreUsuario: username,
@@ -49,48 +49,88 @@ const LoginScreen = () => {
             if(token){
                 await AsyncStorage.setItem('token', token);
                 await AsyncStorage.setItem('user', username);
-                setLoading(false);
+                    setLoading(false);
                 setUser({ username });
                 navigation.replace('Main');
             }else{
-                setLoading(false);
+                    setLoading(false);
                 setError('Error al iniciar sesión');
             }
 
         } catch (error) {
-            setLoading(false);
-            console.log('Login error:', error);
+                console.log('Login error (backend):', error);
             // Si el backend responde con mensaje, mostrarlo
             if (error.response && error.response.data && error.response.data.message) {
-                setError(error.response.data.message);
-                alert(error.response.data.message);
-                return;
-            }
-
-            // Fallback de desarrollo: si el usuario se registró en la app (RegisterScreen guarda user y token en AsyncStorage), permitir ingreso localmente
-            try {
-                const storedUser = await AsyncStorage.getItem('user');
-                const storedToken = await AsyncStorage.getItem('token');
-                if (storedUser && storedUser === username) {
-                    // usar token existente o crear uno falso para desarrollo
-                    await AsyncStorage.setItem('token', storedToken || 'faketoken12345');
-                    setUser({ username });
-                    navigation.replace('Main');
+                    setError(error.response.data.message);
+                    alert(error.response.data.message);
+                    setLoading(false);
                     return;
-                }
-            } catch (e) {
-                console.log('Error accediendo AsyncStorage en fallback:', e);
             }
 
-            // Mensaje genérico si todo falla
-            setError('Error en el servidor o credenciales incorrectas');
-            alert('Error de conexión con el servidor o credenciales incorrectas. Si estás en desarrollo, prueba a registrarte primero.');
+                // Intentar login con Firebase Web Auth (si el usuario ingresó un email)
+                try {
+                    if (username && username.includes('@')) {
+                        const fbRes = await signInWithEmailPass(username, password);
+                        if (fbRes.success) {
+                                const token = fbRes.token || (fbRes.user && (await fbRes.user.getIdToken()));
+                                // Intentar recuperar el nombre real desde el nodo 'usuarios'
+                                let displayName = await getNombreByEmail(username);
+                                if (!displayName) {
+                                    displayName = (fbRes.user && (fbRes.user.displayName || fbRes.user.email.split('@')[0])) || username.split('@')[0];
+                                }
+                                await AsyncStorage.setItem('token', token || 'faketoken12345');
+                                await AsyncStorage.setItem('user', displayName);
+                                setUser({ username: displayName });
+                                setLoading(false);
+                                navigation.replace('Main');
+                                return;
+                        } else {
+                            // mostrar error específico de Firebase
+                            const msg = fbRes.error?.message || 'Error en autenticación con Firebase';
+                                alert(msg);
+                                setError(msg);
+                                setLoading(false);
+                                return;
+                        }
+                    }
+                } catch (fbErr) {
+                        console.log('Firebase login fallback error:', fbErr);
+                        setLoading(false);
+                }
+
+                // Fallback de desarrollo: si el usuario se registró en la app (RegisterScreen guarda user y token en AsyncStorage), permitir ingreso localmente
+                try {
+                    const storedUser = await AsyncStorage.getItem('user');
+                    const storedToken = await AsyncStorage.getItem('token');
+                    if (storedUser && storedUser === username) {
+                        // usar token existente o crear uno falso para desarrollo
+                        await AsyncStorage.setItem('token', storedToken || 'faketoken12345');
+                        setUser({ username });
+                        setLoading(false);
+                        navigation.replace('Main');
+                        return;
+                    }
+                } catch (e) {
+                    console.log('Error accediendo AsyncStorage en fallback:', e);
+                }
+
+                // Mensaje genérico si todo falla
+                setError('Error en el servidor o credenciales incorrectas');
+                setLoading(false);
+                alert('Error de conexión con el servidor o credenciales incorrectas. Si estás en desarrollo, prueba a registrarte primero.');
 
         }
     };
     return (
         <View style={styles.container}>
 
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#005187" />
+                    <Text style={{ marginTop: 12, color: '#005187', fontSize: 16 }}>Iniciando sesión...</Text>
+                </View>
+            ) : (
+            <>
             <Image source={require('../../../assets/chat.png')} style={styles.logo} />
             <Text style={styles.title}>Iniciar Sesión</Text>
             <TextInput
@@ -126,6 +166,8 @@ const LoginScreen = () => {
                     ¿Usar Firebase Auth (email)?
                 </Text>
             </TouchableOpacity>
+            </>
+            )}
 
         </View>
     );

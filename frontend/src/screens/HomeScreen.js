@@ -5,27 +5,42 @@ import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserContext } from '../context/UserContext';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signOutWeb } from '../firebaseAuth';
 
 //nuestro componente principal
 const HomeScreen = () => {
 
     const navigation = useNavigation();
-    // const { user } = useContext(UserContext);
-    const [ user, setUser] = useState('');
+    const { user: ctxUser, setUser } = useContext(UserContext);
+
+    // local display name fallback
+    const [localUser, setLocalUser] = useState('');
 
     useEffect(() => {
         const loadUser = async () => {
             const storedUser = await AsyncStorage.getItem('user');
             if(storedUser){
-                setUser(storedUser);
+                // actualizar contexto si no está presente
+                try { setUser && setUser({ username: storedUser }); } catch(e){}
+                setLocalUser(storedUser);
             }
         }
         loadUser();
     }, []);
 
     const handleLogout = async () => {
+        // Intentar cerrar sesión en Firebase Web (si corresponde)
+        try {
+            await signOutWeb();
+        } catch (e) {
+            console.log('Firebase signOutWeb error:', e);
+        }
+
+        // Limpiar local
         await AsyncStorage.removeItem('token');
         await AsyncStorage.removeItem('user');
+        // limpiar contexto de usuario
+        try { setUser && setUser({}); } catch (e) {}
         navigation.replace('Login')
 
     }
@@ -34,7 +49,7 @@ const HomeScreen = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Bienvenido a la Clínica
-                Pediátrica, {user}</Text>
+                Pediátrica, { (ctxUser && ctxUser.username) || localUser }</Text>
 
             <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Profile')}>
                 <MaterialCommunityIcons name="account" size={24} color={"#ffff"} />
