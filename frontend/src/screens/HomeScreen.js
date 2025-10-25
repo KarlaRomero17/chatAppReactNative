@@ -72,6 +72,13 @@ const HomeScreen = () => {
 
             <View style={styles.spacer} />
 
+            <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Chat')}>
+                <MaterialCommunityIcons name="chat" size={24} color={"#ffff"} />
+                <Text style={styles.buttonText} >Chat (Realtime DB)</Text>
+            </TouchableOpacity>
+
+            <View style={styles.spacer} />
+
             <TouchableOpacity style={styles.button} onPress={() => { }}>
                 <MaterialCommunityIcons name="clipboard-account" size={24} color={"#ffff"} />
                 <Text style={styles.buttonText} >Historial Médico</Text>

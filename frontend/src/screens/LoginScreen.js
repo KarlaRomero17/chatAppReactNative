@@ -50,6 +50,7 @@ const LoginScreen = () => {
                 await AsyncStorage.setItem('token', token);
                 await AsyncStorage.setItem('user', username);
                 setLoading(false);
+                setUser({ username });
                 navigation.replace('Main');
             }else{
                 setLoading(false);
@@ -58,19 +59,34 @@ const LoginScreen = () => {
 
         } catch (error) {
             setLoading(false);
-            if(error.response && error.response.data && error.response.data.message){
+            console.log('Login error:', error);
+            // Si el backend responde con mensaje, mostrarlo
+            if (error.response && error.response.data && error.response.data.message) {
                 setError(error.response.data.message);
                 alert(error.response.data.message);
-            }else{
-                setError('Error en el servidor (frontend)');
+                return;
             }
+
+            // Fallback de desarrollo: si el usuario se registró en la app (RegisterScreen guarda user y token en AsyncStorage), permitir ingreso localmente
+            try {
+                const storedUser = await AsyncStorage.getItem('user');
+                const storedToken = await AsyncStorage.getItem('token');
+                if (storedUser && storedUser === username) {
+                    // usar token existente o crear uno falso para desarrollo
+                    await AsyncStorage.setItem('token', storedToken || 'faketoken12345');
+                    setUser({ username });
+                    navigation.replace('Main');
+                    return;
+                }
+            } catch (e) {
+                console.log('Error accediendo AsyncStorage en fallback:', e);
+            }
+
+            // Mensaje genérico si todo falla
+            setError('Error en el servidor o credenciales incorrectas');
+            alert('Error de conexión con el servidor o credenciales incorrectas. Si estás en desarrollo, prueba a registrarte primero.');
+
         }
-
-
-        setUser({ username });
-        //navegar a la pantalla de inicio
-        //navigation.replace('Main')
-
     };
     return (
         <View style={styles.container}>
@@ -102,6 +118,12 @@ const LoginScreen = () => {
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                 <Text style={{ marginTop: 15, color: '#005187', textAlign: 'center', fontSize: 16 }}>
                     ¿No tienes cuenta? Regístrate
+                </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => navigation.navigate('FirebaseAuth')}>
+                <Text style={{ marginTop: 8, color: '#005187', textAlign: 'center', fontSize: 16 }}>
+                    ¿Usar Firebase Auth (email)?
                 </Text>
             </TouchableOpacity>
 

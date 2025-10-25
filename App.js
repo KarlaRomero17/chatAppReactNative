@@ -16,6 +16,8 @@ import AppTabs from './AppNavigation';
 import { SQLiteProvider } from 'expo-sqlite';
 import { initializeDatabase } from './frontend/src/db/database';
 import RegisterScreen from './frontend/src/screens/RegisterScreen';
+import ChatScreen from './frontend/src/screens/ChatScreen';
+import FirebaseAuthScreen from './frontend/src/screens/FirebaseAuthScreen';
 
 const Stack = createNativeStackNavigator();
 const App = () => {
@@ -26,6 +28,8 @@ const App = () => {
           <Stack.Navigator initialRouteName="Login">
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Main" component={AppTabs} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="FirebaseAuth" component={FirebaseAuthScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
 
 
