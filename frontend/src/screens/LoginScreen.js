@@ -25,7 +25,7 @@ const LoginScreen = () => {
         const checkToken = async () => {
             const token = await AsyncStorage.getItem('token');
             if (token) {
-                navigation.replace('Main');
+                navigation.replace('Chat');
             }
         }
         checkToken();
@@ -53,7 +53,7 @@ const LoginScreen = () => {
                             await AsyncStorage.setItem('user', displayName);
                             setUser({ username: displayName });
                             setLoading(false);
-                            navigation.replace('Main');
+                            navigation.replace('Chat');
                             return;
                         } else {
                             // Si las credenciales son inválidas, mostrar el error inmediatamente
@@ -82,7 +82,7 @@ const LoginScreen = () => {
                     await AsyncStorage.setItem('user', username);
                     setLoading(false);
                     setUser({ username });
-                    navigation.replace('Main');
+                    navigation.replace('Chat');
                 }else{
                     setLoading(false);
                     setError('Error al iniciar sesión');
@@ -113,7 +113,7 @@ const LoginScreen = () => {
                                 await AsyncStorage.setItem('user', displayName);
                                 setUser({ username: displayName });
                                 setLoading(false);
-                                navigation.replace('Main');
+                                navigation.replace('Chat');
                                 return;
                         } else {
                             // mostrar error específico de Firebase
@@ -138,7 +138,7 @@ const LoginScreen = () => {
                         await AsyncStorage.setItem('token', storedToken || 'faketoken12345');
                         setUser({ username });
                         setLoading(false);
-                        navigation.replace('Main');
+                        navigation.replace('Chat');
                         return;
                     }
                 } catch (e) {

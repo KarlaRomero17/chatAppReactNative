@@ -22,7 +22,7 @@ const FirebaseAuthScreen = () => {
       await AsyncStorage.setItem('token', res.token);
       await AsyncStorage.setItem('user', nombre);
       setUser({ username: nombre });
-      navigation.replace('Main');
+      navigation.replace('Chat');
     } else {
       alert(res.error?.message || 'Error en registro');
     }
@@ -40,7 +40,7 @@ const FirebaseAuthScreen = () => {
       await AsyncStorage.setItem('token', res.token);
       await AsyncStorage.setItem('user', username);
       setUser({ username });
-      navigation.replace('Main');
+      navigation.replace('Chat');
     } else {
       alert(res.error?.message || 'Error iniciando sesión');
     }

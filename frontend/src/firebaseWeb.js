@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, set, onValue } from 'firebase/database';
 import { getAnalytics } from "firebase/analytics";
+import { getAuth, signOut } from 'firebase/auth';
 
 // Configuración tomada de los archivos que subiste (ajusta si es necesario)
 const firebaseConfig = {
@@ -59,5 +60,15 @@ export function subscribeMensajesWeb(callback) {
   // onValue doesn't return unsubscribe directly; return a function to call off
   return () => mensajesRef.off && mensajesRef.off('value', listener);
 }
-
+export const signOutWeb = async () => {
+  try {
+    const auth = getAuth();
+    await signOut(auth);
+    console.log('Sesión cerrada exitosamente en Firebase');
+    return true;
+  } catch (error) {
+    console.error('Error al cerrar sesión en Firebase:', error);
+    throw error;
+  }
+};
 export default db;
