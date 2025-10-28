@@ -20,8 +20,28 @@ import {
 } from '../firebaseWeb';
 import { Alert } from 'react-native';
 
-
 const ChatScreen = ({ navigation, setUser }) => {
+  const [mensajes, setMensajes] = useState([]);
+  const [texto, setTexto] = useState('');
+  const [currentUser, setCurrentUser] = useState(''); // Estado para el usuario actual
+  const flatListRef = useRef(null);
+
+  // Obtener el usuario actual al cargar el componente
+  useEffect(() => {
+    const getUserFromStorage = async () => {
+      try {
+        const user = await AsyncStorage.getItem('user');
+        if (user) {
+          setCurrentUser(user);
+        }
+      } catch (error) {
+        console.log('Error obteniendo usuario desde storage:', error);
+      }
+    };
+
+    getUserFromStorage();
+  }, []);
+
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -34,10 +54,6 @@ const ChatScreen = ({ navigation, setUser }) => {
       ),
     });
   }, [navigation]);
-
-  const [mensajes, setMensajes] = useState([]);
-  const [texto, setTexto] = useState('');
-  const flatListRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = subscribeMensajesWeb((data) => {
@@ -56,7 +72,7 @@ const ChatScreen = ({ navigation, setUser }) => {
   }, [mensajes]);
 
   const handleEnviar = async () => {
-    if (!texto.trim()) return;
+    if (!texto.trim() || !currentUser) return;
 
     const now = new Date();
     const fechaHora = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
@@ -64,7 +80,7 @@ const ChatScreen = ({ navigation, setUser }) => {
     await sendMessageWeb({
       fechaHora,
       texto: texto.trim(),
-      usuario: 'app-user'
+      usuario: currentUser // Usar el nombre real del usuario
     });
     setTexto('');
   };
@@ -83,10 +99,8 @@ const ChatScreen = ({ navigation, setUser }) => {
           onPress: async () => {
             try {
               await signOutWeb();
-
             } catch (e) {
               console.log('Firebase signOutWeb error:', e);
-              // Continúa con el logout incluso si hay error
             }
 
             try {
@@ -110,7 +124,7 @@ const ChatScreen = ({ navigation, setUser }) => {
   };
 
   const renderMensaje = ({ item }) => {
-    const esMio = item.usuario === 'app-user';
+    const esMio = item.usuario === currentUser;
 
     return (
       <View style={[
@@ -176,15 +190,15 @@ const ChatScreen = ({ navigation, setUser }) => {
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                !texto.trim() && styles.sendButtonDisabled
+                (!texto.trim() || !currentUser) && styles.sendButtonDisabled
               ]}
               onPress={handleEnviar}
-              disabled={!texto.trim()}
+              disabled={!texto.trim() || !currentUser}
             >
               <MaterialCommunityIcons
                 name="send"
                 size={20}
-                color={texto.trim() ? "#fff" : "#a0a0a0"}
+                color={texto.trim() && currentUser ? "#fff" : "#a0a0a0"}
               />
             </TouchableOpacity>
           </View>
@@ -194,6 +208,7 @@ const ChatScreen = ({ navigation, setUser }) => {
   );
 };
 
+// Los estilos se mantienen igual...
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
