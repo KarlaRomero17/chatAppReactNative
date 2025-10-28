@@ -2,7 +2,8 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, push, set, onValue } from 'firebase/database';
 import { getAnalytics } from "firebase/analytics";
-import { getAuth, signOut } from 'firebase/auth';
+import { getAuth, signOut, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuración tomada de los archivos que subiste (ajusta si es necesario)
 const firebaseConfig = {
@@ -28,7 +29,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const analytics = getAnalytics(app);
+
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
 
 export async function sendMessageWeb(mensaje) {
   try {
@@ -71,4 +75,4 @@ export const signOutWeb = async () => {
     throw error;
   }
 };
-export default db;
+export default { auth, db};
