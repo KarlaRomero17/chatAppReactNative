@@ -23,10 +23,9 @@ import { Alert } from 'react-native';
 const ChatScreen = ({ navigation, setUser }) => {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState('');
-  const [currentUser, setCurrentUser] = useState(''); // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState('');
   const flatListRef = useRef(null);
 
-  // Obtener el usuario actual al cargar el componente
   useEffect(() => {
     const getUserFromStorage = async () => {
       try {
@@ -80,7 +79,7 @@ const ChatScreen = ({ navigation, setUser }) => {
     await sendMessageWeb({
       fechaHora,
       texto: texto.trim(),
-      usuario: currentUser // Usar el nombre real del usuario
+      usuario: currentUser
     });
     setTexto('');
   };
@@ -208,7 +207,6 @@ const ChatScreen = ({ navigation, setUser }) => {
   );
 };
 
-// Los estilos se mantienen igual...
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
