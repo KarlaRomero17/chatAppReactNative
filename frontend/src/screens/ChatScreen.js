@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Modal,  TouchableWithoutFeedback } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
+  deleteMessageWeb,
   sendMessageWeb,
   signOutWeb,
   subscribeMensajesWeb,
-  updateMessageWeb 
-} from '../firebaseWeb'; 
+  updateMessageWeb
+} from '../firebaseWeb';
 
 const ChatScreen = ({ navigation, setUser }) => {
   const [mensajes, setMensajes] = useState([]);
@@ -107,7 +108,7 @@ const ChatScreen = ({ navigation, setUser }) => {
     inputRef.current?.focus();
   };
 
-  
+  //Eliminando
   const handleDeleteOption = () => {
     setModalVisible(false);
     
@@ -118,13 +119,19 @@ const ChatScreen = ({ navigation, setUser }) => {
         { text: "Cancelar", style: "cancel" },
         { 
           text: "Eliminar", 
-          onPress: () => {
-            console.log("Eliminando mensaje:", selectedMessage.id);
-            // --- ¡AQUÍ VA CÓDIGO DE ELIMINAR! ---
+          onPress: async () => {
+          if (!selectedMessage?.id) return;
           
+          const result = await deleteMessageWeb(selectedMessage.id);
+          if (result.success) {
+            console.log("Mensaje eliminado:", selectedMessage.id);
             setSelectedMessage(null);
-          }, 
-          style: "destructive" 
+          } else {
+            Alert.alert("Error", "No se pudo eliminar el mensaje.");
+            console.error(result.error);
+          }
+        }, 
+        style: "destructive"
         }
       ]
     );

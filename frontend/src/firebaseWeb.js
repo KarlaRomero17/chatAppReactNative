@@ -1,9 +1,8 @@
 // Inicialización de Firebase (Web SDK) para usar con Expo Go
-import { initializeApp, getApp, getApps } from 'firebase/app';
-import { getDatabase, ref, push, set, onValue, update, serverTimestamp} from 'firebase/database';
-import { getAnalytics } from "firebase/analytics";
-import { getAuth, signOut, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, getReactNativePersistence, initializeAuth, signOut } from 'firebase/auth';
+import { getDatabase, onValue, push, ref, remove, serverTimestamp, set, update } from 'firebase/database';
 
 // Configuración tomada de los archivos que subiste (ajusta si es necesario)
 const firebaseConfig = {
@@ -99,5 +98,14 @@ export const updateMessageWeb = async (messageId, newText) => {
 };
 
 //Función para eliminar
-
+export const deleteMessageWeb = async (messageId) => {
+  try {
+    const messageRef = ref(db, 'mensajes/' + messageId);
+    await remove(messageRef); // elimina el mensaje
+    return { success: true };
+  } catch (error) {
+    console.error('deleteMessageWeb error', error);
+    return { success: false, error };
+  }
+};
 export default { auth, db };
