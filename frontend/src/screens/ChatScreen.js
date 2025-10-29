@@ -120,7 +120,7 @@ const ChatScreen = ({ navigation, setUser }) => {
           text: "Eliminar", 
           onPress: () => {
             console.log("Eliminando mensaje:", selectedMessage.id);
-            // --- ¡AQUÍ VA TU CÓDIGO DE ELIMINAR! ---
+            // --- ¡AQUÍ VA CÓDIGO DE ELIMINAR! ---
           
             setSelectedMessage(null);
           }, 
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 
-  // --- NUEVOS ESTILOS PARA EL MODAL ---
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -523,11 +523,11 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontSize: 18,
-    color: '#007AFF', // Color azul iOS
+    color: '#007AFF', 
     fontWeight: '500',
   },
   modalOptionDelete: {
-    color: '#FF3B30', // Color rojo iOS
+    color: '#FF3B30', 
     fontWeight: '600',
   },
   modalSeparator: {
@@ -535,18 +535,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     marginVertical: 5,
   },
-
-  // --- NUEVOS ESTILOS PARA EDICIÓN ---
   timeContainer: {
     flexDirection: 'row',
     alignSelf: 'flex-end',
-    alignItems: 'center', // Alinea "Editado" y la hora
+    alignItems: 'center', 
     marginTop: 6,
   },
   editedText: {
     fontSize: 11,
     fontWeight: '500',
-    marginRight: 4, // Espacio entre "Editado" y la hora
+    marginRight: 4, 
   },
   editingContainer: {
     flexDirection: 'row',
