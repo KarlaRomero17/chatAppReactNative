@@ -1,6 +1,6 @@
 // Inicialización de Firebase (Web SDK) para usar con Expo Go
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, push, set, onValue } from 'firebase/database';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getDatabase, ref, push, set, onValue, update, serverTimestamp} from 'firebase/database';
 import { getAnalytics } from "firebase/analytics";
 import { getAuth, signOut, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,13 +26,22 @@ const firebaseConfig = {
 
 };
 
-
-const app = initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+} catch (error) {
+  if (error.code === 'auth/already-initialized') {
+    auth = getAuth(app);
+  } else {
+    console.error("Error inicializando Auth:", error);
+    throw error;
+  }
+}
 
 export async function sendMessageWeb(mensaje) {
   try {
@@ -44,7 +53,7 @@ export async function sendMessageWeb(mensaje) {
     console.error('sendMessageWeb error', error);
     return { success: false, error };
   }
-}
+};
 
 export function subscribeMensajesWeb(callback) {
   const mensajesRef = ref(db, 'mensajes');
@@ -54,19 +63,17 @@ export function subscribeMensajesWeb(callback) {
       callback([]);
       return;
     }
-    // data may be an array or object depending on how it was stored
     const arr = Array.isArray(data)
       ? data.map((m, i) => ({ id: i, ...m }))
       : Object.keys(data).map(k => ({ id: k, ...data[k] }));
     callback(arr);
   });
 
-  // onValue doesn't return unsubscribe directly; return a function to call off
-  return () => mensajesRef.off && mensajesRef.off('value', listener);
-}
+  return () => ref(db, 'mensajes').off('value', listener);
+};
+
 export const signOutWeb = async () => {
   try {
-    const auth = getAuth();
     await signOut(auth);
     console.log('Sesión cerrada exitosamente en Firebase');
     return true;
@@ -75,4 +82,22 @@ export const signOutWeb = async () => {
     throw error;
   }
 };
-export default { auth, db};
+
+export const updateMessageWeb = async (messageId, newText) => {
+  try {
+    const messageRef = ref(db, 'mensajes/' + messageId);
+    const updates = {
+      texto: newText,
+      editadoEn: serverTimestamp()
+    };
+    await update(messageRef, updates);
+    return { success: true };
+  } catch (error) {
+    console.error('updateMessageWeb error', error);
+    return { success: false, error };
+  }
+};
+
+//Función para eliminar
+
+export default { auth, db };

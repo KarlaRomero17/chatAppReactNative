@@ -1,30 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, Alert, Modal,  TouchableWithoutFeedback } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   sendMessageWeb,
   signOutWeb,
-  subscribeMensajesWeb
-} from '../firebaseWeb';
-import { Alert } from 'react-native';
+  subscribeMensajesWeb,
+  updateMessageWeb 
+} from '../firebaseWeb'; 
 
 const ChatScreen = ({ navigation, setUser }) => {
   const [mensajes, setMensajes] = useState([]);
   const [texto, setTexto] = useState('');
   const [currentUser, setCurrentUser] = useState('');
   const flatListRef = useRef(null);
+
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef(null); 
+
 
   useEffect(() => {
     const getUserFromStorage = async () => {
@@ -41,27 +37,45 @@ const ChatScreen = ({ navigation, setUser }) => {
     getUserFromStorage();
   }, []);
 
+
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={{ marginRight: 15 }}
-        >
-          <MaterialCommunityIcons name="logout" size={24} color="#fff" />
-        </TouchableOpacity>
+       
+        <View style={styles.headerButtonContainer}>
+          <TouchableOpacity
+            onPress={handleHelp}
+            style={{ marginRight: 15 }}
+          >
+            <MaterialCommunityIcons name="help-circle-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleLogout}
+            style={{ marginRight: 15 }}
+          >
+            <MaterialCommunityIcons name="logout" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       ),
     });
-  }, [navigation]);
+  }, [navigation]); 
+
 
   useEffect(() => {
     const unsubscribe = subscribeMensajesWeb((data) => {
-      setMensajes(data || []);
+
+      const sortedData = (data || []).sort((a, b) => {
+        
+        return new Date(a.fechaHoraISO || 0) - new Date(b.fechaHoraISO || 0);
+      });
+      setMensajes(sortedData);
     });
 
     return () => unsubscribe && unsubscribe();
   }, []);
 
+ 
   useEffect(() => {
     if (mensajes.length > 0) {
       setTimeout(() => {
@@ -70,20 +84,91 @@ const ChatScreen = ({ navigation, setUser }) => {
     }
   }, [mensajes]);
 
+
+  const handleHelp = () => {
+    Alert.alert(
+      "Ayuda",
+      "Para editar o eliminar uno de tus mensajes, simplemente manténlo presionado."
+    );
+  };
+
+ 
+  const handleLongPress = (message) => {
+    setSelectedMessage(message);
+    setModalVisible(true);
+  };
+
+
+  const handleEditOption = () => {
+    setModalVisible(false);
+    setIsEditing(true);
+    setTexto(selectedMessage.texto);
+  
+    inputRef.current?.focus();
+  };
+
+  
+  const handleDeleteOption = () => {
+    setModalVisible(false);
+    
+    Alert.alert(
+      "Confirmar Eliminación",
+      "¿Estás seguro de que deseas eliminar este mensaje?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Eliminar", 
+          onPress: () => {
+            console.log("Eliminando mensaje:", selectedMessage.id);
+            // --- ¡AQUÍ VA TU CÓDIGO DE ELIMINAR! ---
+          
+            setSelectedMessage(null);
+          }, 
+          style: "destructive" 
+        }
+      ]
+    );
+  };
+
+ 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setTexto('');
+    setSelectedMessage(null);
+  };
+
+
   const handleEnviar = async () => {
     if (!texto.trim() || !currentUser) return;
 
-    const now = new Date();
-    const fechaHora = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+ 
+    if (isEditing && selectedMessage) {
+      const result = await updateMessageWeb(selectedMessage.id, texto.trim());
+      if (result.success) {
+        console.log("Mensaje actualizado");
+      } else {
+        console.error("Error al actualizar:", result.error);
+      
+      }
+      handleCancelEdit(); 
+    
+ 
+    } else {
+      const now = new Date();
+      const fechaHora = `${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
-    await sendMessageWeb({
-      fechaHora,
-      texto: texto.trim(),
-      usuario: currentUser
-    });
-    setTexto('');
+      await sendMessageWeb({
+        fechaHora,
+        fechaHoraISO: now.toISOString(),
+        texto: texto.trim(),
+        usuario: currentUser
+      });
+      setTexto('');
+    }
   };
 
+
+  // (handleLogout - sin cambios)
   const handleLogout = async () => {
     Alert.alert(
       'Cerrar sesión',
@@ -122,41 +207,97 @@ const ChatScreen = ({ navigation, setUser }) => {
     );
   };
 
+  // --- renderMensaje (MODIFICADO) ---
   const renderMensaje = ({ item }) => {
     const esMio = item.usuario === currentUser;
 
     return (
-      <View style={[
-        styles.bubbleContainer,
-        esMio ? styles.bubbleContainerMio : styles.bubbleContainerOtro
-      ]}>
+      // Envolvemos la burbuja en un TouchableOpacity para el long press
+      <TouchableOpacity
+        onLongPress={() => esMio && handleLongPress(item)} // Solo si es mío
+        activeOpacity={0.8} // Evita que parpadee mucho al tocar
+      >
         <View style={[
-          styles.bubble,
-          esMio ? styles.bubbleMio : styles.bubbleOtro
+          styles.bubbleContainer,
+          esMio ? styles.bubbleContainerMio : styles.bubbleContainerOtro
         ]}>
-          {!esMio && (
-            <Text style={styles.userName}>{item.usuario}</Text>
-          )}
-          <Text style={[
-            styles.messageText,
-            esMio ? styles.messageTextMio : styles.messageTextOtro
+          <View style={[
+            styles.bubble,
+            esMio ? styles.bubbleMio : styles.bubbleOtro
           ]}>
-            {item.texto}
-          </Text>
-          <Text style={[
-            styles.time,
-            esMio ? styles.timeMio : styles.timeOtro
-          ]}>
-            {item.fechaHora}
-          </Text>
+            {!esMio && (
+              <Text style={styles.userName}>{item.usuario}</Text>
+            )}
+            <Text style={[
+              styles.messageText,
+              esMio ? styles.messageTextMio : styles.messageTextOtro
+            ]}>
+              {item.texto}
+            </Text>
+            {/* Contenedor para la hora y el texto "Editado" */}
+            <View style={styles.timeContainer}>
+              {/* --- NUEVO: Indicador de Editado --- */}
+              {item.editadoEn && (
+                <Text style={[
+                  styles.editedText,
+                  esMio ? styles.timeMio : styles.timeOtro
+                ]}>
+                  Editado · 
+                </Text>
+              )}
+              <Text style={[
+                styles.time,
+                esMio ? styles.timeMio : styles.timeOtro
+              ]}>
+                {item.fechaHora}
+              </Text>
+            </View>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
+  // --- JSX (MODIFICADO) ---
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#1a365d" barStyle="light-content" />
+
+      {/* --- NUEVO: Modal de Edición/Eliminación --- */}
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={handleEditOption}
+              >
+                <Text style={styles.modalOptionText}>Editar Mensaje</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={handleDeleteOption}
+              >
+                <Text style={[styles.modalOptionText, styles.modalOptionDelete]}>
+                  Eliminar Mensaje
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.modalSeparator} />
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.modalOptionText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <KeyboardAvoidingView
         style={styles.container}
@@ -175,9 +316,25 @@ const ChatScreen = ({ navigation, setUser }) => {
           />
         </View>
 
+        {/* --- NUEVO: Barra de "Editando..." --- */}
+        {isEditing && (
+          <View style={styles.editingContainer}>
+            <View>
+              <Text style={styles.editingTitle}>Editando mensaje</Text>
+              <Text style={styles.editingText} numberOfLines={1}>
+                {selectedMessage?.texto}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleCancelEdit}>
+              <MaterialCommunityIcons name="close-circle" size={24} color="#718096" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <TextInput
+              ref={inputRef} // <-- Asignamos la ref
               style={styles.input}
               value={texto}
               onChangeText={setTexto}
@@ -189,13 +346,16 @@ const ChatScreen = ({ navigation, setUser }) => {
             <TouchableOpacity
               style={[
                 styles.sendButton,
+                // Cambiamos el color si está editando
+                isEditing ? styles.sendButtonEditing : {},
                 (!texto.trim() || !currentUser) && styles.sendButtonDisabled
               ]}
               onPress={handleEnviar}
               disabled={!texto.trim() || !currentUser}
             >
+              {/* Cambiamos el ícono si está editando */}
               <MaterialCommunityIcons
-                name="send"
+                name={isEditing ? "check" : "send"}
                 size={20}
                 color={texto.trim() && currentUser ? "#fff" : "#a0a0a0"}
               />
@@ -297,20 +457,20 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+  flexDirection: 'row',
+    alignItems: 'center', 
     backgroundColor: '#f7fafc',
     borderRadius: 25,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 8, 
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   input: {
-    flex: 1,
+   flex: 1,
     fontSize: 16,
     maxHeight: 100,
-    paddingVertical: 8,
+    paddingVertical: 0,
     paddingHorizontal: 8,
     color: '#2d3748',
     fontWeight: '400',
@@ -333,6 +493,83 @@ const styles = StyleSheet.create({
     backgroundColor: '#cbd5e0',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  headerButtonContainer: {
+    flexDirection: 'row',
+  },
+
+  // --- NUEVOS ESTILOS PARA EL MODAL ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 14,
+    padding: 10,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalOption: {
+    paddingVertical: 15,
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    fontSize: 18,
+    color: '#007AFF', // Color azul iOS
+    fontWeight: '500',
+  },
+  modalOptionDelete: {
+    color: '#FF3B30', // Color rojo iOS
+    fontWeight: '600',
+  },
+  modalSeparator: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 5,
+  },
+
+  // --- NUEVOS ESTILOS PARA EDICIÓN ---
+  timeContainer: {
+    flexDirection: 'row',
+    alignSelf: 'flex-end',
+    alignItems: 'center', // Alinea "Editado" y la hora
+    marginTop: 6,
+  },
+  editedText: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginRight: 4, // Espacio entre "Editado" y la hora
+  },
+  editingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  editingTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#2b6cb0',
+  },
+  editingText: {
+    fontSize: 14,
+    color: '#718096',
+    maxWidth: '90%',
+  },
+  sendButtonEditing: {
+    backgroundColor: '#38A169', 
   },
 });
 
