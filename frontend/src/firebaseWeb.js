@@ -56,6 +56,7 @@ export async function sendMessageWeb(mensaje) {
 
 export function subscribeMensajesWeb(callback) {
   const mensajesRef = ref(db, 'mensajes');
+  
   const listener = onValue(mensajesRef, snapshot => {
     const data = snapshot.val();
     if (!data) {
@@ -68,9 +69,9 @@ export function subscribeMensajesWeb(callback) {
     callback(arr);
   });
 
-  return () => ref(db, 'mensajes').off('value', listener);
-};
 
+  return listener; 
+};
 export const signOutWeb = async () => {
   try {
     await signOut(auth);

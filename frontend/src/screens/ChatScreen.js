@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, 
+  TouchableOpacity, TouchableWithoutFeedback, View, Keyboard } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   deleteMessageWeb,
@@ -108,7 +109,7 @@ const ChatScreen = ({ navigation, setUser }) => {
     inputRef.current?.focus();
   };
 
-  //Eliminando
+
   const handleDeleteOption = () => {
     setModalVisible(false);
     
@@ -214,15 +215,15 @@ const ChatScreen = ({ navigation, setUser }) => {
     );
   };
 
-  // --- renderMensaje (MODIFICADO) ---
+  
   const renderMensaje = ({ item }) => {
     const esMio = item.usuario === currentUser;
 
     return (
-      // Envolvemos la burbuja en un TouchableOpacity para el long press
+   
       <TouchableOpacity
-        onLongPress={() => esMio && handleLongPress(item)} // Solo si es mío
-        activeOpacity={0.8} // Evita que parpadee mucho al tocar
+        onLongPress={() => esMio && handleLongPress(item)} 
+        activeOpacity={0.8} 
       >
         <View style={[
           styles.bubbleContainer,
@@ -241,9 +242,7 @@ const ChatScreen = ({ navigation, setUser }) => {
             ]}>
               {item.texto}
             </Text>
-            {/* Contenedor para la hora y el texto "Editado" */}
-            <View style={styles.timeContainer}>
-              {/* --- NUEVO: Indicador de Editado --- */}
+            <View style={styles.timeContainer}>            
               {item.editadoEn && (
                 <Text style={[
                   styles.editedText,
@@ -265,113 +264,116 @@ const ChatScreen = ({ navigation, setUser }) => {
     );
   };
 
-  // --- JSX (MODIFICADO) ---
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar backgroundColor="#1a365d" barStyle="light-content" />
+  
+return (
+  <SafeAreaView style={styles.safeArea}>
+    <StatusBar backgroundColor="#1a365d" barStyle="light-content" />
 
-      {/* --- NUEVO: Modal de Edición/Eliminación --- */}
-      <Modal
-        visible={modalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={handleEditOption}
-              >
-                <Text style={styles.modalOptionText}>Editar Mensaje</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={handleDeleteOption}
-              >
-                <Text style={[styles.modalOptionText, styles.modalOptionDelete]}>
-                  Eliminar Mensaje
-                </Text>
-              </TouchableOpacity>
-              <View style={styles.modalSeparator} />
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.modalOptionText}>Cancelar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <View style={styles.backgroundPattern}>
-          <FlatList
-            ref={flatListRef}
-            data={mensajes}
-            keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-            renderItem={renderMensaje}
-            contentContainerStyle={styles.messagesList}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          />
-        </View>
-
-        {/* --- NUEVO: Barra de "Editando..." --- */}
-        {isEditing && (
-          <View style={styles.editingContainer}>
-            <View>
-              <Text style={styles.editingTitle}>Editando mensaje</Text>
-              <Text style={styles.editingText} numberOfLines={1}>
-                {selectedMessage?.texto}
+    <Modal
+      visible={modalVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.modalOption} onPress={handleEditOption}>
+              <Text style={styles.modalOptionText}>Editar Mensaje</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalOption} onPress={handleDeleteOption}>
+              <Text style={[styles.modalOptionText, styles.modalOptionDelete]}>
+                Eliminar Mensaje
               </Text>
-            </View>
-            <TouchableOpacity onPress={handleCancelEdit}>
-              <MaterialCommunityIcons name="close-circle" size={24} color="#718096" />
             </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              ref={inputRef} // <-- Asignamos la ref
-              style={styles.input}
-              value={texto}
-              onChangeText={setTexto}
-              placeholder="Escribe tu mensaje..."
-              placeholderTextColor="#8a8a8a"
-              multiline
-              maxLength={500}
-            />
+            <View style={styles.modalSeparator} />
             <TouchableOpacity
-              style={[
-                styles.sendButton,
-                // Cambiamos el color si está editando
-                isEditing ? styles.sendButtonEditing : {},
-                (!texto.trim() || !currentUser) && styles.sendButtonDisabled
-              ]}
-              onPress={handleEnviar}
-              disabled={!texto.trim() || !currentUser}
+              style={styles.modalOption}
+              onPress={() => setModalVisible(false)}
             >
-              {/* Cambiamos el ícono si está editando */}
-              <MaterialCommunityIcons
-                name={isEditing ? "check" : "send"}
-                size={20}
-                color={texto.trim() && currentUser ? "#fff" : "#a0a0a0"}
-              />
+              <Text style={styles.modalOptionText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+      </TouchableWithoutFeedback>
+    </Modal>
+
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
+    >
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+        <View style={styles.inner}>
+          <View style={styles.backgroundPattern}>
+            <FlatList
+              ref={flatListRef}
+              data={mensajes}
+              keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+              renderItem={renderMensaje}
+              contentContainerStyle={styles.messagesList}
+              showsVerticalScrollIndicator={false}
+              onContentSizeChange={() =>
+                flatListRef.current?.scrollToEnd({ animated: true })
+              }
+            />
+          </View>
+
+          {isEditing && (
+            <View style={styles.editingContainer}>
+              <View>
+                <Text style={styles.editingTitle}>Editando mensaje</Text>
+                <Text style={styles.editingText} numberOfLines={1}>
+                  {selectedMessage?.texto}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={handleCancelEdit}>
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={24}
+                  color="#718096"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                ref={inputRef}
+                style={styles.input}
+                value={texto}
+                onChangeText={setTexto}
+                placeholder="Escribe tu mensaje..."
+                placeholderTextColor="#8a8a8a"
+                multiline
+                maxLength={500}
+                onFocus={() =>
+                  setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)
+                }
+              />
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  isEditing ? styles.sendButtonEditing : {},
+                  (!texto.trim() || !currentUser) && styles.sendButtonDisabled,
+                ]}
+                onPress={handleEnviar}
+                disabled={!texto.trim() || !currentUser}
+              >
+                <MaterialCommunityIcons
+                  name={isEditing ? 'check' : 'send'}
+                  size={20}
+                  color={texto.trim() && currentUser ? '#fff' : '#a0a0a0'}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+  </SafeAreaView>
+);
 };
 
 const styles = StyleSheet.create({
@@ -576,6 +578,11 @@ const styles = StyleSheet.create({
   sendButtonEditing: {
     backgroundColor: '#38A169', 
   },
+  inner: {
+  flex: 1,
+  justifyContent: 'space-between',
+},
+
 });
 
 export default ChatScreen;
